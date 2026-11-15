@@ -10,25 +10,25 @@ StudyTimer is a native macOS menu-bar timer for focused work and breaks. Its cou
 
 Start a tagged timer, queue the next session, toggle looping, or pause, reset, and cancel the active timer.
 
-![StudyTimer menu-bar timer popover](docs/images/Timer.png)
+<img src="docs/images/Timer.png" alt="StudyTimer menu-bar timer popover" width="520">
 
 ### Activity
 
 Review completed sessions and total time by hashtag. Add a past session manually or remove a history entry.
 
-![StudyTimer activity and session history](docs/images/Activity.png)
+<img src="docs/images/Activity.png" alt="StudyTimer activity and session history" width="760">
 
 ### Presets
 
 Save named timer sequences, including per-step tags and an optional loop, then start the whole sequence with one click.
 
-![StudyTimer saved timer presets](docs/images/Presets.png)
+<img src="docs/images/Presets.png" alt="StudyTimer saved timer presets" width="680">
 
 ### Settings
 
 Choose a completion sound and volume, record keyboard shortcuts, enable macOS notifications, and prevent idle system sleep while a timer is running.
 
-![StudyTimer settings](docs/images/Settings.png)
+<img src="docs/images/Settings.png" alt="StudyTimer settings" width="560">
 
 ## Requirements
 
