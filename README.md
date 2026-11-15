@@ -1,5 +1,7 @@
 # StudyTimer
 
+[![Donate](https://img.shields.io/badge/Donate-Ko--fi-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/danielromanovski)
+
 StudyTimer is a native macOS menu-bar timer for focused work and breaks. Its countdown lives in the menu bar, while a compact popover gives quick access to timer entry, queued sessions, and saved presets. Activity and settings open in separate macOS windows.
 
 ## Screenshots
@@ -35,7 +37,7 @@ Choose a completion sound and volume, record keyboard shortcuts, enable macOS no
 
 ## Download and install
 
-Download the latest `StudyTimer-1.0.0-macOS-arm64.zip` from the [GitHub Releases](https://github.com/DanielRomanovski/StudyTimer/releases/latest) page. Open the ZIP, then move `StudyTimer.app` into Applications.
+Download `StudyTimer-1.0.1-macOS-arm64.dmg` from the [GitHub Releases](https://github.com/DanielRomanovski/StudyTimer/releases/latest) page. Open the disk image, then drag `StudyTimer.app` onto the Applications shortcut in the window.
 
 This initial release is ad-hoc signed and not notarized by Apple. On first launch, Control-click the app in Applications, choose **Open**, and confirm the prompt. A Developer ID signature and notarization are required to remove this first-launch warning.
 
@@ -50,7 +52,7 @@ From the repository directory, build and launch the app bundle:
 open dist/StudyTimer.app
 ```
 
-StudyTimer is a menu-bar-only app and does not appear in the Dock. After launch, find the `MM:SS` countdown in the menu bar and click it to open the timer popover. The local build is ad-hoc signed; distributing the app to other people requires signing and notarization with an Apple Developer account.
+StudyTimer is a menu-bar-only app and does not appear in the Dock. After launch, find the `MM:SS` countdown in the menu bar and click it to open the timer popover. Right-click the countdown for **Quit StudyTimer**. The build script creates both the `.app` bundle and a drag-to-Applications `.dmg`. The local build is ad-hoc signed; distributing the app to other people requires signing and notarization with an Apple Developer account.
 
 To compile without creating the app bundle:
 
@@ -79,7 +81,7 @@ Select the chart button to open Activity. The sidebar totals the recorded durati
 
 ## Settings and data
 
-Settings include timer-completion sounds, volume, optional macOS notifications, idle-sleep prevention, and configurable shortcuts for creating and starting or pausing a timer. macOS may require Accessibility or Input Monitoring permission for global keyboard shortcuts.
+Settings include timer-completion sounds, volume, optional macOS notifications, idle-sleep prevention, launch at login, and configurable shortcuts for creating and starting or pausing a timer. macOS may require Accessibility or Input Monitoring permission for global keyboard shortcuts. The Settings window also links to [Ko-fi](https://ko-fi.com/danielromanovski).
 
 Timer history, preferences, queued timers, and presets are stored locally in the app's macOS user defaults. No account or network connection is required to use the app.
 
@@ -88,7 +90,7 @@ Timer history, preferences, queued timers, and presets are stored locally in the
 ```text
 Sources/StudyTimer/   SwiftUI views, timer state, and AppKit menu-bar integration
 docs/images/          README screenshots
-scripts/build-app.sh  Release build and local .app bundle creation
+scripts/build-app.sh  Release build, .app bundle, and drag-install DMG
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.

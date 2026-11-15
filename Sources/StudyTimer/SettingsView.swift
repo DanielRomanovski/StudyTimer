@@ -1,14 +1,24 @@
 import AppKit
+import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var store: TimerStore
     @State private var recording: ShortcutKind?
+    @State private var startsAtLogin = false
+    @State private var loginItemError: String?
 
     private let sounds = ["Glass", "Ping", "Pop", "Purr", "Submarine", "Tink", "Funk", "Hero"]
 
     var body: some View {
         Form {
+            Section {
+                Link(destination: URL(string: "https://ko-fi.com/danielromanovski")!) {
+                    Label("Donate", systemImage: "heart")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
             Section("Shortcuts") {
                 shortcutRow("New timer", kind: .create, shortcut: store.preferences.createShortcut)
                 shortcutRow("Start / pause", kind: .toggle, shortcut: store.preferences.toggleShortcut)
@@ -34,6 +44,7 @@ struct SettingsView: View {
             Section("Behavior") {
                 Toggle("macOS notification when a timer ends", isOn: notificationBinding)
                 Toggle("Prevent system sleep while running", isOn: binding(\.preventSleep))
+                Toggle("Start StudyTimer at login", isOn: $startsAtLogin)
                 Text("The display can still turn off; only idle system sleep is prevented.")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
@@ -46,6 +57,16 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .padding(12)
         .frame(minWidth: 440, minHeight: 440)
+        .onAppear { startsAtLogin = SMAppService.mainApp.status == .enabled }
+        .onChange(of: startsAtLogin) { _, enabled in updateLoginItem(enabled) }
+        .alert("Unable to update login item", isPresented: Binding(
+            get: { loginItemError != nil },
+            set: { if !$0 { loginItemError = nil } }
+        )) {
+            Button("OK", role: .cancel) { loginItemError = nil }
+        } message: {
+            Text(loginItemError ?? "StudyTimer could not update its login setting.")
+        }
     }
 
     @ViewBuilder
@@ -78,6 +99,19 @@ struct SettingsView: View {
     private func updateShortcut(_ shortcut: TimerShortcut, kind: ShortcutKind) {
         if kind == .create { store.preferences.createShortcut = shortcut }
         else { store.preferences.toggleShortcut = shortcut }
+    }
+
+    private func updateLoginItem(_ enabled: Bool) {
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            loginItemError = error.localizedDescription
+            startsAtLogin = SMAppService.mainApp.status == .enabled
+        }
     }
 
     private func previewSound() {

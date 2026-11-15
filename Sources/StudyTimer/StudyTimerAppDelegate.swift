@@ -27,6 +27,9 @@ final class StudyTimerAppDelegate: NSObject, NSApplicationDelegate {
         item.button?.toolTip = "StudyTimer"
         item.button?.target = self
         item.button?.action = #selector(togglePopover)
+        let rightClick = NSClickGestureRecognizer(target: self, action: #selector(showStatusContextMenu(_:)))
+        rightClick.buttonMask = 0x2
+        item.button?.addGestureRecognizer(rightClick)
         statusItem = item
 
         let popover = NSPopover()
@@ -54,6 +57,19 @@ final class StudyTimerAppDelegate: NSObject, NSApplicationDelegate {
         } else {
             statusPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
+    }
+
+    @objc private func showStatusContextMenu(_ recognizer: NSClickGestureRecognizer) {
+        guard let button = statusItem?.button else { return }
+        let menu = NSMenu()
+        let quitItem = NSMenuItem(title: "Quit StudyTimer", action: #selector(quitStudyTimer), keyEquivalent: "")
+        quitItem.target = self
+        menu.addItem(quitItem)
+        menu.popUp(positioning: nil, at: NSPoint(x: button.bounds.midX, y: button.bounds.minY), in: button)
+    }
+
+    @objc private func quitStudyTimer() {
+        store.quit()
     }
 
     private func showActivityWindow() {

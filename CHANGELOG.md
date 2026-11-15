@@ -2,6 +2,15 @@
 
 Notable changes to StudyTimer are documented here.
 
+## [1.0.1] - 2026-11-15
+
+### Added
+
+- Right-click the menu-bar countdown to open a Quit StudyTimer command.
+- A Settings toggle to start the app at login using macOS Login Items.
+- Donate links in Settings and at the top of the README.
+- A drag-to-Applications disk image for installation.
+
 ## [1.0.0] - 2026-11-15
 
 ### Added
