@@ -10,6 +10,7 @@ final class TimerStore: ObservableObject {
     @Published var queue: [TimerSpec] { didSet { persist() } }
     @Published var history: [TimerRecord] { didSet { persist() } }
     @Published var loopEnabled: Bool { didSet { persist() } }
+    @Published var presets: [TimerPreset] { didSet { persist() } }
     @Published var preferences: TimerPreferences { didSet { persist(); updateSleepAssertion() } }
 
     private let defaultsKey = "StudyTimer.state"
@@ -24,6 +25,7 @@ final class TimerStore: ObservableObject {
         _queue = Published(initialValue: saved.queue)
         _history = Published(initialValue: saved.history)
         _loopEnabled = Published(initialValue: saved.loopEnabled)
+        _presets = Published(initialValue: saved.presets)
     }
 
     var statusText: String { durationText(remainingSeconds) }
@@ -64,6 +66,47 @@ final class TimerStore: ObservableObject {
             }
         }
         updateSleepAssertion()
+    }
+
+    func resetTimer() {
+        guard let activeTimer else { return }
+        tickTimer?.invalidate()
+        tickTimer = nil
+        remainingSeconds = activeTimer.seconds
+        activeStartedAt = nil
+        isRunning = false
+        updateSleepAssertion()
+    }
+
+    func cancelTimer() {
+        tickTimer?.invalidate()
+        tickTimer = nil
+        activeTimer = nil
+        remainingSeconds = 0
+        activeStartedAt = nil
+        isRunning = false
+        queue = []
+        loopEnabled = false
+        updateSleepAssertion()
+    }
+
+    func start(_ preset: TimerPreset) {
+        guard let firstTimer = preset.timers.first else { return }
+        queue = Array(preset.timers.dropFirst())
+        loopEnabled = preset.loopEnabled
+        start(firstTimer)
+    }
+
+    func savePreset(_ preset: TimerPreset) {
+        if let index = presets.firstIndex(where: { $0.id == preset.id }) {
+            presets[index] = preset
+        } else {
+            presets.append(preset)
+        }
+    }
+
+    func deletePreset(_ preset: TimerPreset) {
+        presets.removeAll { $0.id == preset.id }
     }
 
     func handleShortcut(keyCode: UInt16, modifiers: UInt) {
@@ -155,7 +198,7 @@ final class TimerStore: ObservableObject {
     }
 
     private func persist() {
-        let state = PersistedState(preferences: preferences, queue: queue, history: history, loopEnabled: loopEnabled)
+        let state = PersistedState(preferences: preferences, queue: queue, history: history, loopEnabled: loopEnabled, presets: presets)
         guard let data = try? JSONEncoder().encode(state) else { return }
         UserDefaults.standard.set(data, forKey: defaultsKey)
     }

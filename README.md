@@ -1,23 +1,86 @@
 # StudyTimer
 
-A small, native macOS menu-bar timer. The menu-bar item displays the remaining time as text and stays out of the Dock.
+StudyTimer is a native macOS menu-bar timer for focused work and breaks. Its countdown lives in the menu bar, while a compact popover gives quick access to timer entry, queued sessions, and saved presets. Activity and settings open in separate macOS windows.
+
+## Screenshots
+
+### Timer
+
+Start a tagged timer, queue the next session, toggle looping, or pause, reset, and cancel the active timer.
+
+![StudyTimer menu-bar timer popover](docs/images/Timer.png)
+
+### Activity
+
+Review completed sessions and total time by hashtag. Add a past session manually or remove a history entry.
+
+![StudyTimer activity and session history](docs/images/Activity.png)
+
+### Presets
+
+Save named timer sequences, including per-step tags and an optional loop, then start the whole sequence with one click.
+
+![StudyTimer saved timer presets](docs/images/Presets.png)
+
+### Settings
+
+Choose a completion sound and volume, record keyboard shortcuts, enable macOS notifications, and prevent idle system sleep while a timer is running.
+
+![StudyTimer settings](docs/images/Settings.png)
+
+## Requirements
+
+- macOS 14 or later
+- Swift 6 and the Xcode Command Line Tools
 
 ## Build and run
 
-Requires macOS 14 or later and Swift 6.
+From the repository directory, build and launch the app bundle:
 
 ```sh
 ./scripts/build-app.sh
 open dist/StudyTimer.app
 ```
 
-The app is ad-hoc signed for local use. Distribution outside your Mac requires signing and notarization with an Apple Developer account.
+StudyTimer is a menu-bar-only app and does not appear in the Dock. After launch, find the `MM:SS` countdown in the menu bar and click it to open the timer popover. The local build is ad-hoc signed; distributing the app to other people requires signing and notarization with an Apple Developer account.
 
-## Use
+To compile without creating the app bundle:
 
-- Enter `35:00`, `45`, or `1:30:00` to start a timer. Add an optional tag after `#`, such as `35:00 #working`.
-- Use `+` to queue the next timer. Enable Loop to repeat completed timers after the queued timers.
-- Open Activity from the bottom-left chart button to review tags and sessions, add manual records, or delete entries.
-- Settings include sound, volume, notifications, sleep prevention, and configurable keyboard shortcuts. The create shortcut starts the most recent session duration, or 25 minutes when there is no history.
+```sh
+swift build
+```
 
-Timer history, queue, and preferences are stored locally in macOS user defaults.
+## Using timers
+
+Type a duration into the timer field and press Return or select the play button to start it. Durations can be entered as `MM:SS`, `HH:MM:SS`, seconds, or plain units. For example:
+
+```text
+35:00 #working
+90:00 #writing
+1:30:00 #project
+45 min #break
+```
+
+Text after `#` becomes the session tag. Select `+` to add the entered timer to the queue. The Loop switch repeats the active timer or cycles through the active timer and queued timers. Use the pause button to pause or resume, the circular-arrow button to reset the active timer to its full duration, and `x` to cancel the active timer and clear the queue.
+
+## Presets and activity
+
+Select the stacked-layers button in the timer popover to open Presets. Create a name such as `Study` or `Games`, add and tag as many timer steps as needed, and turn on Loop to repeat the sequence. Presets are saved locally and can be edited, started, or deleted.
+
+Select the chart button to open Activity. The sidebar totals the recorded duration for each tag. The session table lists completed and manually added entries; use **Add entry** to record a past session or the trash button to delete an entry. Manually added entries contribute to tag totals.
+
+## Settings and data
+
+Settings include timer-completion sounds, volume, optional macOS notifications, idle-sleep prevention, and configurable shortcuts for creating and starting or pausing a timer. macOS may require Accessibility or Input Monitoring permission for global keyboard shortcuts.
+
+Timer history, preferences, queued timers, and presets are stored locally in the app's macOS user defaults. No account or network connection is required to use the app.
+
+## Project layout
+
+```text
+Sources/StudyTimer/   SwiftUI views, timer state, and AppKit menu-bar integration
+docs/images/          README screenshots
+scripts/build-app.sh  Release build and local .app bundle creation
+```
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.

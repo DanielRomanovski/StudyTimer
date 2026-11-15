@@ -15,6 +15,13 @@ struct TimerRecord: Identifiable, Codable {
     var endedAt: Date
 }
 
+struct TimerPreset: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var name: String
+    var timers: [TimerSpec]
+    var loopEnabled: Bool
+}
+
 struct TimerShortcut: Codable, Equatable {
     var keyCode: UInt16
     var modifiers: UInt
@@ -57,29 +64,83 @@ struct PersistedState: Codable {
     var queue: [TimerSpec] = []
     var history: [TimerRecord] = []
     var loopEnabled = false
+    var presets: [TimerPreset] = []
+
+    private enum CodingKeys: String, CodingKey {
+        case preferences, queue, history, loopEnabled, presets
+    }
+
+    init(preferences: TimerPreferences = TimerPreferences(), queue: [TimerSpec] = [], history: [TimerRecord] = [], loopEnabled: Bool = false, presets: [TimerPreset] = []) {
+        self.preferences = preferences
+        self.queue = queue
+        self.history = history
+        self.loopEnabled = loopEnabled
+        self.presets = presets
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        preferences = try container.decodeIfPresent(TimerPreferences.self, forKey: .preferences) ?? TimerPreferences()
+        queue = try container.decodeIfPresent([TimerSpec].self, forKey: .queue) ?? []
+        history = try container.decodeIfPresent([TimerRecord].self, forKey: .history) ?? []
+        loopEnabled = try container.decodeIfPresent(Bool.self, forKey: .loopEnabled) ?? false
+        presets = try container.decodeIfPresent([TimerPreset].self, forKey: .presets) ?? []
+    }
 }
 
 enum TimerInput {
     static func parse(_ input: String) -> TimerSpec? {
         let pieces = input.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)
         let timeText = pieces[0].trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = timeText.split(separator: ":", omittingEmptySubsequences: false)
-        guard (1...3).contains(parts.count), parts.allSatisfy({ Int($0) != nil }) else { return nil }
-        let values = parts.compactMap { Int($0) }
-        guard values.allSatisfy({ $0 >= 0 }), values.dropLast().allSatisfy({ $0 < 60 }) else { return nil }
-
-        let seconds: Int
-        switch values.count {
-        case 1: seconds = values[0]
-        case 2: seconds = values[0] * 60 + values[1]
-        default: seconds = values[0] * 3600 + values[1] * 60 + values[2]
-        }
-        guard seconds > 0, seconds <= 86_400 else { return nil }
+        guard let seconds = durationSeconds(timeText), seconds > 0, seconds <= 86_400 else { return nil }
 
         let tag = pieces.count == 2
             ? pieces[1].trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "#"))
             : ""
         return TimerSpec(seconds: seconds, tag: tag.isEmpty ? nil : tag)
+    }
+
+    private static func durationSeconds(_ input: String) -> Int? {
+        if input.contains(":" ) {
+            let parts = input.split(separator: ":", omittingEmptySubsequences: false)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            guard (2...3).contains(parts.count), let values = Optional(parts.compactMap(Int.init)), values.count == parts.count,
+                  values.allSatisfy({ $0 >= 0 }) else { return nil }
+
+            if values.count == 2 {
+                guard values[1] < 60 else { return nil }
+                return totalSeconds([(values[0], 60), (values[1], 1)])
+            }
+            guard values[1] < 60, values[2] < 60 else { return nil }
+            return totalSeconds([(values[0], 3600), (values[1], 60), (values[2], 1)])
+        }
+
+        if let seconds = Int(input), seconds >= 0 { return seconds }
+
+        let pattern = #"^\s*(?:(\d+)\s*(?:h|hr|hrs|hour|hours))?\s*(?:(\d+)\s*(?:m|min|mins|minute|minutes))?\s*(?:(\d+)\s*(?:s|sec|secs|second|seconds))?\s*$"#
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+              let match = expression.firstMatch(in: input, range: NSRange(input.startIndex..., in: input)) else { return nil }
+
+        var components: [(Int, Int)] = []
+        for (group, multiplier) in [(1, 3600), (2, 60), (3, 1)] {
+            let range = match.range(at: group)
+            guard range.location != NSNotFound else { continue }
+            guard let swiftRange = Range(range, in: input), let value = Int(input[swiftRange]) else { return nil }
+            components.append((value, multiplier))
+        }
+        guard !components.isEmpty else { return nil }
+        return totalSeconds(components)
+    }
+
+    private static func totalSeconds(_ components: [(Int, Int)]) -> Int? {
+        var total = 0
+        for (value, multiplier) in components {
+            let (component, multiplicationOverflow) = value.multipliedReportingOverflow(by: multiplier)
+            let (sum, additionOverflow) = total.addingReportingOverflow(component)
+            guard !multiplicationOverflow, !additionOverflow else { return nil }
+            total = sum
+        }
+        return total
     }
 }
 

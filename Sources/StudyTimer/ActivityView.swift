@@ -4,10 +4,13 @@ struct ActivityView: View {
     @EnvironmentObject private var store: TimerStore
     @State private var showingAddRecord = false
 
-    private var tagCounts: [(tag: String, count: Int)] {
-        Dictionary(grouping: store.history.compactMap { record in record.tag.map { ($0, record) } }, by: \.0)
-            .map { (tag: $0.key, count: $0.value.count) }
-            .sorted { $0.count == $1.count ? $0.tag.localizedCaseInsensitiveCompare($1.tag) == .orderedAscending : $0.count > $1.count }
+    private var tagTotals: [(tag: String, seconds: Int)] {
+        let totals = store.history.reduce(into: [String: Int]()) { result, record in
+            guard let tag = record.tag else { return }
+            result[tag, default: 0] += record.seconds
+        }
+        return totals.map { (tag: $0.key, seconds: $0.value) }
+            .sorted { $0.seconds == $1.seconds ? $0.tag.localizedCaseInsensitiveCompare($1.tag) == .orderedAscending : $0.seconds > $1.seconds }
     }
 
     var body: some View {
@@ -19,17 +22,17 @@ struct ActivityView: View {
                     .padding(.horizontal, 18)
                     .padding(.top, 22)
                     .padding(.bottom, 12)
-                if tagCounts.isEmpty {
+                if tagTotals.isEmpty {
                     Text("Tags appear as you track sessions.")
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 18)
                 } else {
-                    List(tagCounts, id: \.tag) { item in
+                    List(tagTotals, id: \.tag) { item in
                         HStack {
                             Text("#\(item.tag)").lineLimit(1)
                             Spacer(minLength: 8)
-                            Text("\(item.count)")
+                            Text(durationText(item.seconds))
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }

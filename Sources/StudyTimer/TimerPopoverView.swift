@@ -2,9 +2,12 @@ import SwiftUI
 
 struct TimerPopoverView: View {
     @EnvironmentObject private var store: TimerStore
-    @Environment(\.openWindow) private var openWindow
     @State private var input = ""
+    @State private var inputError: String?
     @FocusState private var fieldFocused: Bool
+    var onOpenActivity: () -> Void = {}
+    var onOpenSettings: () -> Void = {}
+    var onOpenPresets: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -20,13 +23,25 @@ struct TimerPopoverView: View {
                 }
                 Spacer()
                 if store.activeTimer != nil {
-                    Button { store.togglePause() } label: {
-                        Image(systemName: store.isRunning ? "pause.fill" : "play.fill")
-                            .frame(width: 32, height: 32)
+                    HStack(spacing: 4) {
+                        Button { store.togglePause() } label: {
+                            Image(systemName: store.isRunning ? "pause.fill" : "play.fill")
+                                .frame(width: 28, height: 28)
+                        }
+                        .help(store.isRunning ? "Pause timer" : "Resume timer")
+                        Button { store.resetTimer() } label: {
+                            Image(systemName: "arrow.counterclockwise")
+                                .frame(width: 28, height: 28)
+                        }
+                        .help("Reset timer")
+                        Button { store.cancelTimer() } label: {
+                            Image(systemName: "xmark")
+                                .frame(width: 28, height: 28)
+                        }
+                        .help("Cancel timer and clear queue")
                     }
                     .buttonStyle(.bordered)
                     .tint(Color.accentColor)
-                    .help(store.isRunning ? "Pause timer" : "Resume timer")
                 }
             }
 
@@ -37,6 +52,7 @@ struct TimerPopoverView: View {
                     .textFieldStyle(.plain)
                     .focused($fieldFocused)
                     .onSubmit { beginTimer() }
+                    .onChange(of: input) { _, _ in inputError = nil }
                 Button(action: addNextTimer) {
                     Image(systemName: "plus")
                         .frame(width: 28, height: 28)
@@ -53,6 +69,12 @@ struct TimerPopoverView: View {
             }
             .padding(8)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
+
+            if let inputError {
+                Text(inputError)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+            }
 
             if !store.queue.isEmpty {
                 HStack {
@@ -98,11 +120,13 @@ struct TimerPopoverView: View {
 
             Divider()
             HStack {
-                Button { openWindow(id: "activity") } label: { Image(systemName: "chart.xyaxis.line") }
+                Button(action: onOpenActivity) { Image(systemName: "chart.xyaxis.line") }
                     .help("Activity and timer history")
-                Button { openWindow(id: "settings") } label: { Image(systemName: "gearshape") }
+                Button(action: onOpenSettings) { Image(systemName: "gearshape") }
                     .help("Settings")
                 Spacer()
+                Button(action: onOpenPresets) { Image(systemName: "square.stack.3d.up") }
+                    .help("Manage timer presets")
                 if !store.history.isEmpty {
                     Text("\(store.history.count) completed")
                         .font(.system(size: 10))
@@ -119,12 +143,18 @@ struct TimerPopoverView: View {
     }
 
     private func beginTimer() {
-        guard store.addTimer(from: input, start: true) else { NSSound.beep(); return }
+        guard store.addTimer(from: input, start: true) else {
+            inputError = "Try 35:00, 90:00, or 45 min."
+            return
+        }
         input = ""
     }
 
     private func addNextTimer() {
-        guard store.addTimer(from: input) else { NSSound.beep(); return }
+        guard store.addTimer(from: input) else {
+            inputError = "Try 35:00, 90:00, or 45 min."
+            return
+        }
         input = ""
     }
 }
