@@ -117,8 +117,11 @@ private struct AddHistoryRecordView: View {
                 .font(.system(size: 18, weight: .medium, design: .rounded))
             TextField("Duration (25:00)", text: $duration)
                 .textFieldStyle(.roundedBorder)
-            TextField("Tag (optional)", text: $tag)
-                .textFieldStyle(.roundedBorder)
+            HStack(spacing: 4) {
+                Text("#").foregroundStyle(.secondary)
+                TextField("Tag (optional)", text: $tag)
+                    .textFieldStyle(.roundedBorder)
+            }
             DatePicker("Date", selection: $date, displayedComponents: [.date, .hourAndMinute])
             HStack {
                 Spacer()
@@ -135,6 +138,7 @@ private struct AddHistoryRecordView: View {
     private func save() {
         guard let timer = TimerInput.parse(duration) else { return }
         let normalizedTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
         onSave(timer.seconds, normalizedTag.isEmpty ? timer.tag : normalizedTag, date)
         dismiss()
     }

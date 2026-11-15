@@ -10,6 +10,8 @@ final class StudyTimerAppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var statusPopover: NSPopover?
     private var statusSubscription: AnyCancellable?
+    private var localClickMonitor: Any?
+    private var globalClickMonitor: Any?
     private var activityWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var presetsWindow: NSWindow?
@@ -26,10 +28,8 @@ final class StudyTimerAppDelegate: NSObject, NSApplicationDelegate {
         item.button?.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         item.button?.toolTip = "StudyTimer"
         item.button?.target = self
-        item.button?.action = #selector(togglePopover)
-        let rightClick = NSClickGestureRecognizer(target: self, action: #selector(showStatusContextMenu(_:)))
-        rightClick.buttonMask = 0x2
-        item.button?.addGestureRecognizer(rightClick)
+        item.button?.action = #selector(handleStatusItemAction)
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         statusItem = item
 
         let popover = NSPopover()
@@ -44,28 +44,56 @@ final class StudyTimerAppDelegate: NSObject, NSApplicationDelegate {
             .environmentObject(store)
         )
         statusPopover = popover
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            self?.dismissPopoverForOutsideClick()
+            return event
+        }
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.dismissPopoverForOutsideClick()
+            }
+        }
 
         statusSubscription = store.$remainingSeconds.sink { [weak self] seconds in
             self?.statusItem?.button?.title = durationText(seconds)
         }
     }
 
-    @objc private func togglePopover() {
+    @objc private func handleStatusItemAction() {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showStatusContextMenu()
+            return
+        }
         guard let button = statusItem?.button, let statusPopover else { return }
         if statusPopover.isShown {
             statusPopover.performClose(nil)
         } else {
+            store.stopCompletionSound()
             statusPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
     }
 
-    @objc private func showStatusContextMenu(_ recognizer: NSClickGestureRecognizer) {
+    private func showStatusContextMenu() {
         guard let button = statusItem?.button else { return }
         let menu = NSMenu()
         let quitItem = NSMenuItem(title: "Quit StudyTimer", action: #selector(quitStudyTimer), keyEquivalent: "")
         quitItem.target = self
         menu.addItem(quitItem)
         menu.popUp(positioning: nil, at: NSPoint(x: button.bounds.midX, y: button.bounds.minY), in: button)
+    }
+
+    private func dismissPopoverForOutsideClick() {
+        guard let statusPopover, statusPopover.isShown else { return }
+        let location = NSEvent.mouseLocation
+        if let button = statusItem?.button,
+           let buttonWindow = button.window,
+           buttonWindow.convertToScreen(button.convert(button.bounds, to: nil)).contains(location) {
+            return
+        }
+        if statusPopover.contentViewController?.view.window?.frame.contains(location) == true {
+            return
+        }
+        statusPopover.performClose(nil)
     }
 
     @objc private func quitStudyTimer() {
@@ -138,5 +166,11 @@ final class StudyTimerAppDelegate: NSObject, NSApplicationDelegate {
         window.center()
         window.contentViewController = NSHostingController(rootView: content)
         return window
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        store.persistForTermination()
+        if let localClickMonitor { NSEvent.removeMonitor(localClickMonitor) }
+        if let globalClickMonitor { NSEvent.removeMonitor(globalClickMonitor) }
     }
 }

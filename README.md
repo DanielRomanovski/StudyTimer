@@ -37,9 +37,9 @@ Choose a completion sound and volume, record keyboard shortcuts, enable macOS no
 
 ## Download and install
 
-Download `StudyTimer-1.0.1-macOS-arm64.dmg` from the [GitHub Releases](https://github.com/DanielRomanovski/StudyTimer/releases/latest) page. Open the disk image, then drag `StudyTimer.app` onto the Applications shortcut in the window.
+Download `StudyTimer-1.0.3-macOS-arm64.dmg` from the [GitHub Releases](https://github.com/DanielRomanovski/StudyTimer/releases/latest) page. Open the disk image, then drag `StudyTimer.app` onto the Applications shortcut in the window.
 
-This initial release is ad-hoc signed and not notarized by Apple. On first launch, Control-click the app in Applications, choose **Open**, and confirm the prompt. A Developer ID signature and notarization are required to remove this first-launch warning.
+This release is ad-hoc signed and not notarized by Apple. On first launch, Control-click the app in Applications, choose **Open**, and confirm the prompt. A Developer ID signature and notarization are required to remove this first-launch warning.
 
 ## Build and run
 
@@ -71,7 +71,7 @@ Type a duration into the timer field and press Return or select the play button 
 45 min #break
 ```
 
-Text after `#` becomes the session tag. Select `+` to add the entered timer to the queue. The Loop switch repeats the active timer or cycles through the active timer and queued timers. Use the pause button to pause or resume, the circular-arrow button to reset the active timer to its full duration, and `x` to cancel the active timer and clear the queue.
+Text after `#` becomes the session tag. Select `+` to add the entered timer to the queue. The Loop switch repeats the active timer or cycles through the active timer and queued timers. Use the pause button to pause or resume, the circular-arrow button to reset the active timer to its full duration, and `x` to cancel the active timer and clear the queue. The active timer, remaining time, and queue are saved when you quit and restored when you reopen StudyTimer; use `x` to cancel and clear them.
 
 ## Presets and activity
 
@@ -81,14 +81,15 @@ Select the chart button to open Activity. The sidebar totals the recorded durati
 
 ## Settings and data
 
-Settings include timer-completion sounds, volume, optional macOS notifications, idle-sleep prevention, launch at login, and configurable shortcuts for creating and starting or pausing a timer. macOS may require Accessibility or Input Monitoring permission for global keyboard shortcuts. The Settings window also links to [Ko-fi](https://ko-fi.com/danielromanovski).
+Settings include timer-completion sounds with instant previews, imported audio files, optional repeat-until-dismissed alerts, macOS notifications, idle-sleep prevention, launch at login, and configurable shortcuts. macOS may require Accessibility or Input Monitoring permission for global keyboard shortcuts. The Settings window also links to [Ko-fi](https://ko-fi.com/danielromanovski).
 
-Timer history, preferences, queued timers, and presets are stored locally in the app's macOS user defaults. No account or network connection is required to use the app.
+Timer history, preferences, queued timers, presets, and the active timer state are stored in `~/Library/Application Support/StudyTimer/state.json`. Imported alert sounds are copied to the neighboring `Sounds` folder. Existing data in macOS user defaults is migrated automatically. These files stay outside the app bundle, so replacing or deleting the app does not remove them. No account or network connection is required to use the app.
 
 ## Project layout
 
 ```text
 Sources/StudyTimer/   SwiftUI views, timer state, and AppKit menu-bar integration
+assets/               Source app-icon artwork
 docs/images/          README screenshots
 scripts/build-app.sh  Release build, .app bundle, and drag-install DMG
 ```

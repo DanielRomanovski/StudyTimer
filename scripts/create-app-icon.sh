@@ -11,6 +11,7 @@ width="$(sips -g pixelWidth "$SOURCE" | awk '/pixelWidth/ {print $2}')"
 height="$(sips -g pixelHeight "$SOURCE" | awk '/pixelHeight/ {print $2}')"
 side="$width"
 if [ "$height" -lt "$width" ]; then side="$height"; fi
+side="$((side * 4 / 5))"
 left="$(((width - side) / 2))"
 top="$(((height - side) / 2))"
 ICONSET="$WORK_DIR/StudyTimer.iconset"

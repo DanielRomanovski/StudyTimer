@@ -52,11 +52,41 @@ enum KeyCodeMap {
 
 struct TimerPreferences: Codable {
     var soundName = "Glass"
+    var customSoundFilename: String?
     var volume = 0.7
     var notificationsEnabled = false
     var preventSleep = false
+    var loopCompletionSound = false
     var createShortcut = TimerShortcut.createDefault
     var toggleShortcut = TimerShortcut.toggleDefault
+
+    private enum CodingKeys: String, CodingKey {
+        case soundName, customSoundFilename, volume, notificationsEnabled, preventSleep
+        case loopCompletionSound, createShortcut, toggleShortcut
+    }
+
+    init() {
+        soundName = "Glass"
+        customSoundFilename = nil
+        volume = 0.7
+        notificationsEnabled = false
+        preventSleep = false
+        loopCompletionSound = false
+        createShortcut = .createDefault
+        toggleShortcut = .toggleDefault
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        soundName = try container.decodeIfPresent(String.self, forKey: .soundName) ?? "Glass"
+        customSoundFilename = try container.decodeIfPresent(String.self, forKey: .customSoundFilename)
+        volume = try container.decodeIfPresent(Double.self, forKey: .volume) ?? 0.7
+        notificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? false
+        preventSleep = try container.decodeIfPresent(Bool.self, forKey: .preventSleep) ?? false
+        loopCompletionSound = try container.decodeIfPresent(Bool.self, forKey: .loopCompletionSound) ?? false
+        createShortcut = try container.decodeIfPresent(TimerShortcut.self, forKey: .createShortcut) ?? .createDefault
+        toggleShortcut = try container.decodeIfPresent(TimerShortcut.self, forKey: .toggleShortcut) ?? .toggleDefault
+    }
 }
 
 struct PersistedState: Codable {
@@ -65,17 +95,36 @@ struct PersistedState: Codable {
     var history: [TimerRecord] = []
     var loopEnabled = false
     var presets: [TimerPreset] = []
+    var activeTimer: TimerSpec?
+    var remainingSeconds = 0
+    var isRunning = false
+    var activeStartedAt: Date?
 
     private enum CodingKeys: String, CodingKey {
         case preferences, queue, history, loopEnabled, presets
+        case activeTimer, remainingSeconds, isRunning, activeStartedAt
     }
 
-    init(preferences: TimerPreferences = TimerPreferences(), queue: [TimerSpec] = [], history: [TimerRecord] = [], loopEnabled: Bool = false, presets: [TimerPreset] = []) {
+    init(
+        preferences: TimerPreferences = TimerPreferences(),
+        queue: [TimerSpec] = [],
+        history: [TimerRecord] = [],
+        loopEnabled: Bool = false,
+        presets: [TimerPreset] = [],
+        activeTimer: TimerSpec? = nil,
+        remainingSeconds: Int = 0,
+        isRunning: Bool = false,
+        activeStartedAt: Date? = nil
+    ) {
         self.preferences = preferences
         self.queue = queue
         self.history = history
         self.loopEnabled = loopEnabled
         self.presets = presets
+        self.activeTimer = activeTimer
+        self.remainingSeconds = remainingSeconds
+        self.isRunning = isRunning
+        self.activeStartedAt = activeStartedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -85,6 +134,10 @@ struct PersistedState: Codable {
         history = try container.decodeIfPresent([TimerRecord].self, forKey: .history) ?? []
         loopEnabled = try container.decodeIfPresent(Bool.self, forKey: .loopEnabled) ?? false
         presets = try container.decodeIfPresent([TimerPreset].self, forKey: .presets) ?? []
+        activeTimer = try container.decodeIfPresent(TimerSpec.self, forKey: .activeTimer)
+        remainingSeconds = try container.decodeIfPresent(Int.self, forKey: .remainingSeconds) ?? 0
+        isRunning = try container.decodeIfPresent(Bool.self, forKey: .isRunning) ?? false
+        activeStartedAt = try container.decodeIfPresent(Date.self, forKey: .activeStartedAt)
     }
 }
 

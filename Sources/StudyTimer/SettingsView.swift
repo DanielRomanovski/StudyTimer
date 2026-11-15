@@ -1,22 +1,27 @@
 import AppKit
 import ServiceManagement
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var store: TimerStore
     @State private var recording: ShortcutKind?
     @State private var startsAtLogin = false
-    @State private var loginItemError: String?
+    @State private var settingsError: String?
 
     private let sounds = ["Glass", "Ping", "Pop", "Purr", "Submarine", "Tink", "Funk", "Hero"]
 
     var body: some View {
         Form {
             Section {
-                Link(destination: URL(string: "https://ko-fi.com/danielromanovski")!) {
-                    Label("Donate", systemImage: "heart")
+                HStack {
+                    Spacer(minLength: 0)
+                    Link(destination: URL(string: "https://ko-fi.com/danielromanovski")!) {
+                        Label("Donate", systemImage: "heart")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.borderedProminent)
             }
 
             Section("Shortcuts") {
@@ -28,8 +33,21 @@ struct SettingsView: View {
             }
 
             Section("Timer complete") {
-                Picker("Sound", selection: binding(\.soundName)) {
-                    ForEach(sounds, id: \.self) { Text($0).tag($0) }
+                Picker("Sound", selection: soundSelection) {
+                    ForEach(sounds, id: \.self) { Text($0).tag("built-in:\($0)") }
+                    if let filename = store.preferences.customSoundFilename {
+                        Text("Custom: \(URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent)")
+                            .tag("custom")
+                    }
+                }
+                HStack {
+                    Button("Import sound…", systemImage: "square.and.arrow.down", action: importSound)
+                    if store.preferences.customSoundFilename != nil {
+                        Button("Use built-in sound") {
+                            store.preferences.customSoundFilename = nil
+                            store.previewCompletionSound()
+                        }
+                    }
                 }
                 HStack {
                     Text("Volume")
@@ -38,14 +56,23 @@ struct SettingsView: View {
                         .font(.system(size: 10, design: .monospaced))
                         .frame(width: 34, alignment: .trailing)
                 }
-                .onTapGesture(count: 2) { previewSound() }
+                Toggle("Repeat alert until dismissed", isOn: binding(\.loopCompletionSound))
+                Text("The alert stops when you reopen the timer or press your Start / Pause shortcut.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
             }
 
             Section("Behavior") {
                 Toggle("macOS notification when a timer ends", isOn: notificationBinding)
+                Text("Show a macOS notification when a session finishes.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
                 Toggle("Prevent system sleep while running", isOn: binding(\.preventSleep))
+                Text("Keeps the Mac awake while a timer is running; the display may still turn off.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
                 Toggle("Start StudyTimer at login", isOn: $startsAtLogin)
-                Text("The display can still turn off; only idle system sleep is prevented.")
+                Text("Open StudyTimer automatically when you sign in to this Mac.")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
@@ -59,13 +86,13 @@ struct SettingsView: View {
         .frame(minWidth: 440, minHeight: 440)
         .onAppear { startsAtLogin = SMAppService.mainApp.status == .enabled }
         .onChange(of: startsAtLogin) { _, enabled in updateLoginItem(enabled) }
-        .alert("Unable to update login item", isPresented: Binding(
-            get: { loginItemError != nil },
-            set: { if !$0 { loginItemError = nil } }
+        .alert("Unable to update setting", isPresented: Binding(
+            get: { settingsError != nil },
+            set: { if !$0 { settingsError = nil } }
         )) {
-            Button("OK", role: .cancel) { loginItemError = nil }
+            Button("OK", role: .cancel) { settingsError = nil }
         } message: {
-            Text(loginItemError ?? "StudyTimer could not update its login setting.")
+            Text(settingsError ?? "StudyTimer could not update this setting.")
         }
     }
 
@@ -92,6 +119,21 @@ struct SettingsView: View {
         })
     }
 
+    private var soundSelection: Binding<String> {
+        Binding(
+            get: {
+                if store.preferences.customSoundFilename != nil { return "custom" }
+                return "built-in:\(store.preferences.soundName)"
+            },
+            set: { selection in
+                guard selection.hasPrefix("built-in:") else { return }
+                store.preferences.customSoundFilename = nil
+                store.preferences.soundName = String(selection.dropFirst("built-in:".count))
+                store.previewCompletionSound()
+            }
+        )
+    }
+
     private func binding<Value>(_ keyPath: WritableKeyPath<TimerPreferences, Value>) -> Binding<Value> {
         Binding(get: { store.preferences[keyPath: keyPath] }, set: { store.preferences[keyPath: keyPath] = $0 })
     }
@@ -109,15 +151,22 @@ struct SettingsView: View {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            loginItemError = error.localizedDescription
+            settingsError = error.localizedDescription
             startsAtLogin = SMAppService.mainApp.status == .enabled
         }
     }
 
-    private func previewSound() {
-        guard let sound = NSSound(named: NSSound.Name(store.preferences.soundName)) else { return }
-        sound.volume = Float(store.preferences.volume)
-        sound.play()
+    private func importSound() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.audio]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try store.importCustomSound(from: url)
+        } catch {
+            settingsError = error.localizedDescription
+        }
     }
 }
 

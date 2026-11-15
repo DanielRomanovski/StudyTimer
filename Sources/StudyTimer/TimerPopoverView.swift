@@ -127,11 +127,6 @@ struct TimerPopoverView: View {
                 Spacer()
                 Button(action: onOpenPresets) { Image(systemName: "square.stack.3d.up") }
                     .help("Manage timer presets")
-                if !store.history.isEmpty {
-                    Text("\(store.history.count) completed")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                }
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
