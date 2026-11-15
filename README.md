@@ -31,9 +31,17 @@ Choose a completion sound and volume, record keyboard shortcuts, enable macOS no
 ## Requirements
 
 - macOS 14 or later
-- Swift 6 and the Xcode Command Line Tools
+- Apple Silicon Mac
+
+## Download and install
+
+Download the latest `StudyTimer-1.0.0-macOS-arm64.zip` from the [GitHub Releases](https://github.com/DanielRomanovski/StudyTimer/releases/latest) page. Open the ZIP, then move `StudyTimer.app` into Applications.
+
+This initial release is ad-hoc signed and not notarized by Apple. On first launch, Control-click the app in Applications, choose **Open**, and confirm the prompt. A Developer ID signature and notarization are required to remove this first-launch warning.
 
 ## Build and run
+
+Building from source requires Swift 6 and the Xcode Command Line Tools.
 
 From the repository directory, build and launch the app bundle:
 
